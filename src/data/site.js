@@ -30,7 +30,7 @@ export const SITE = {
      LEAVE name BLANK rather than putting something inaccurate; the copy
      degrades to "the organiser" on its own. */
   organiser: {
-    name: '',                      // e.g. 'Gokul S.'
+    name: 'Gokul Raj S',
     city: 'Kollam',
   },
 
@@ -67,11 +67,21 @@ export const SITE = {
     id: 's.gokul.18@superyes',
     payeeName: 'Complete Meal',
   },
+  /* A PERSONAL savings account, and the page says so. The account NAME must
+     match the bank's records exactly — a transfer addressed to a name the
+     bank does not hold gets rejected or reversed, and a mismatch between the
+     name on the page and the name on the account looks like fraud to a
+     careful donor. So this reads "Gokul Raj S", not "Complete Meal".
+
+     Only what is needed to receive a transfer lives here. The passbook also
+     carries a home address, mobile number, customer ID and Aadhaar — none of
+     which a donor needs, all of which are useful to someone impersonating the
+     account holder to the bank. Do not add them. */
   bank: {
-    accountName: 'Complete Meal Foundation',
-    accountNumber: '0000 0000 0000',
-    ifsc: 'XXXX0000000',
-    bankName: 'Bank name, Kollam branch',
+    accountName: 'GOKUL RAJ S',
+    accountNumber: '40563101076949',
+    ifsc: 'KLGB0040563',
+    bankName: 'Kerala Gramin Bank, Kollam branch',
   },
 
   /** Name to show publicly: the campaign name until registration exists. */
