@@ -1,0 +1,21 @@
+{
+  "name": "complete-meal-foundation",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Donation website for a hunger-relief charity",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.0"
+  }
+}
