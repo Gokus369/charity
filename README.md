@@ -55,6 +55,8 @@ npm run preview  # serve the production build
 ```
 index.html                 Vite entry (meta tags, favicon, #root)
 vite.config.js
+.env.example               template for VITE_SHEET_ENDPOINT
+apps-script/Code.gs        paste into the Google Sheet's Apps Script editor
 src/
   main.jsx                 mounts <App>
   App.jsx                  composes the page sections
@@ -384,10 +386,54 @@ are a serious audit problem.
 3. **Tell us it's yours** — name, email, PAN and the **UTR**, because money arrives in the account
    with no donor name attached.
 
-`recordDonation()` in [src/payments.js](src/payments.js) does **not** move money — it records what the
-donor says they sent, so you can reconcile against the statement and file Form 10BD. Three stubs are
-commented in: your own endpoint, a Google Apps Script writing to a Sheet, or a form service like
-Formspree. Until you wire one up, nothing is stored anywhere.
+`recordDonation()` in [src/payments.js](src/payments.js) does **not** move money — it records what
+the donor says they sent, so you can reconcile against the bank statement and, once registered, file
+Form 10BD.
+
+### Sending donations to a Google Sheet
+
+Records go to a Google Sheet via an Apps Script Web App. Nothing is stored until you set this up —
+the form still works, but logs a console warning and saves nothing.
+
+**1. Make the sheet.** In the Google account that should own it (`completemeal570@gmail.com`), create
+a spreadsheet. The script writes to a tab named **`complete_meal`** and creates it if missing.
+
+**2. Add the script.** In that sheet: **Extensions ▸ Apps Script**, delete the placeholder, and paste
+all of [apps-script/Code.gs](apps-script/Code.gs). Save.
+
+**3. Deploy it.** **Deploy ▸ New deployment ▸ Web app**, then:
+
+| Setting | Value |
+| --- | --- |
+| Execute as | **Me** |
+| Who has access | **Anyone** |
+
+"Anyone" is required — donors are not signed in to your Google account. Authorise when prompted;
+the "unverified app" warning is expected for your own script (**Advanced ▸ Go to … (unsafe)**).
+
+**4. Point the site at it.** Copy the `/exec` URL and put it in `.env` at the project root:
+
+```
+VITE_SHEET_ENDPOINT=https://script.google.com/macros/s/AKfy.../exec
+```
+
+`.env` is gitignored; [.env.example](.env.example) is the committed template. **Vite only reads env
+files at startup — restart `npm run dev` after editing.**
+
+**5. Test.** Submit a donation on the site and confirm a row appears. Opening the `/exec` URL in a
+browser directly should return `{"ok":true,...}`.
+
+Columns: Timestamp · Name · Email · Amount · Meals · UTR · Method · Currency · Matched to bank? ·
+Receipt sent? — the last two are blank for you to fill during reconciliation.
+
+**Two things worth knowing.** The request is sent as `text/plain` on purpose: that keeps it a CORS
+"simple request" so the browser skips the preflight `OPTIONS` that Apps Script cannot answer. The
+script still parses the body as JSON.
+
+And the Web App URL ships inside the site's JavaScript, so anyone viewing source can find it and post
+rows. That is normally harmless — the sheet is a to-check list, not a source of truth; the bank
+statement is. If you get spammed, set `TOKEN` in `Code.gs`, send the same value in the payload, and
+rows without it are rejected.
 
 ### What this costs you
 
@@ -395,6 +441,7 @@ Formspree. Until you wire one up, nothing is stored anywhere.
 | --- | --- |
 | **Reconciliation** | Manual. You match UTRs against the bank statement by hand |
 | **Receipts** | Manual. Nothing is issued automatically |
+| **Where records land** | A Google Sheet via Apps Script — see above |
 | **Recurring gifts** | Not possible — UPI AutoPay needs a PSP. The FAQ points donors at a bank standing instruction instead |
 | **Cards / netbanking** | Not supported. Add a hosted link (Danamojo, Instamojo, Razorpay Payment Pages) if donors ask |
 

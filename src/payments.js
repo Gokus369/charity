@@ -107,40 +107,36 @@ export function upiAppLink({ platform, app, upiId, payeeName, amount, note }) {
 
    Money arrives directly in the bank account by UPI or bank
    transfer. Nothing here moves money — this only RECORDS what
-   the donor says they sent, so you can:
-     1. match it against the bank statement using the UTR, and
-     2. file Form 10BD, which needs name, PAN, address, amount.
+   the donor says they sent, so you can match it against the
+   bank statement using the UTR.
 
-   Wire it to wherever you want the record to land. Three options
-   that need no server of your own:
+   Set VITE_SHEET_ENDPOINT in .env to your Apps Script Web App
+   URL (see apps-script/Code.gs and the README). With it unset,
+   submissions resolve without being stored anywhere, so the
+   form still works in development.
    ------------------------------------------------------- */
+const SHEET_ENDPOINT = import.meta.env?.VITE_SHEET_ENDPOINT || '';
+
 export function recordDonation(payload) {
-  // ---- OPTION A · your own endpoint (best: you control the data) ----
-  // return fetch('/api/donations', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // }).then((r) => {
-  //   if (!r.ok) throw new Error('Could not record donation');
-  //   return r.json();
-  // });
+  if (!SHEET_ENDPOINT) {
+    // Nothing configured — don't pretend the donation was recorded.
+    console.warn('[recordDonation] VITE_SHEET_ENDPOINT is not set; nothing was saved.');
+    return Promise.resolve({ status: 'not_connected' });
+  }
 
-  // ---- OPTION B · Google Sheet via an Apps Script Web App ----
-  // Deploy a Script with doPost(e) appending to a sheet, then:
-  // return fetch(import.meta.env.VITE_SHEET_ENDPOINT, {
-  //   method: 'POST',
-  //   body: JSON.stringify(payload),
-  // });
-
-  // ---- OPTION C · a form service (Formspree, Basin, Web3Forms) ----
-  // return fetch('https://formspree.io/f/XXXXXXX', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-  //   body: JSON.stringify(payload),
-  // });
-
-  // ---- Placeholder: nothing is recorded anywhere yet ----
-  return new Promise((resolve) => {
-    setTimeout(() => resolve({ status: 'not_connected' }), 500);
-  });
+  /* text/plain keeps this a CORS "simple request", so the browser skips the
+     preflight OPTIONS that Apps Script cannot answer. The script reads the
+     raw body with JSON.parse(e.postData.contents) regardless of this header. */
+  return fetch(SHEET_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+    redirect: 'follow',
+  })
+    .then(async (r) => {
+      if (!r.ok) throw new Error(`Sheet responded ${r.status}`);
+      const body = await r.json().catch(() => ({ ok: true }));
+      if (body.ok === false) throw new Error(body.error || 'Sheet rejected the row');
+      return body;
+    });
 }
