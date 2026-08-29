@@ -59,6 +59,49 @@ export function upiLink({ upiId, payeeName, amount, note }) {
   return `upi://pay?${params.toString().replace(/\+/g, '%20')}`;
 }
 
+/**
+ * Which UPI deep links will actually resolve here.
+ *
+ *   desktop -> none. `upi://` has no handler in a desktop browser, so a
+ *              button would simply do nothing. Show the QR instead.
+ *   android -> `intent://` is the reliable form, and can target one app by
+ *              package name so "Google Pay" really opens Google Pay.
+ *   ios     -> `upi://` is not supported at all; each app has its own scheme.
+ */
+export function upiPlatform() {
+  if (typeof navigator === 'undefined') return 'desktop';
+  const ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+  // iPadOS 13+ reports as a Mac; a touch-capable "Mac" is really an iPad.
+  if (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
+  return 'desktop';
+}
+
+/** Android package names / iOS URL schemes for the common Indian UPI apps. */
+export const UPI_APPS = [
+  { key: 'gpay', label: 'Google Pay', pkg: 'com.google.android.apps.nbu.paisa.user', ios: 'gpay://upi/pay' },
+  { key: 'phonepe', label: 'PhonePe', pkg: 'com.phonepe.app', ios: 'phonepe://pay' },
+  { key: 'paytm', label: 'Paytm', pkg: 'net.one97.paytm', ios: 'paytmmp://pay' },
+];
+
+/** A link that opens one specific app, or the system chooser when `app` is null. */
+export function upiAppLink({ platform, app, upiId, payeeName, amount, note }) {
+  const qs = new URLSearchParams({ pa: upiId, pn: payeeName, cu: 'INR' });
+  if (amount > 0) qs.set('am', amount.toFixed(2));
+  if (note) qs.set('tn', note);
+  const query = qs.toString().replace(/\+/g, '%20');
+
+  if (platform === 'android') {
+    const pkg = app ? `package=${app.pkg};` : '';
+    return `intent://pay?${query}#Intent;scheme=upi;${pkg}end`;
+  }
+  if (platform === 'ios') {
+    return app ? `${app.ios}?${query}` : `upi://pay?${query}`;
+  }
+  return `upi://pay?${query}`;
+}
+
 /* -------------------------------------------------------
    NO PAYMENT GATEWAY.
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import Icon from './Icon.jsx';
 import { SITE } from '../data/site.js';
-import { money, upiLink } from '../payments.js';
+import { money, upiAppLink, upiPlatform, UPI_APPS } from '../payments.js';
 
 /** Small copy-to-clipboard control. Falls back silently on old browsers. */
 function CopyField({ label, value, mono = true }) {
@@ -32,8 +32,25 @@ function CopyField({ label, value, mono = true }) {
 export default function UpiPanel({ amount }) {
   const [qr, setQr] = useState('');
   const [showBank, setShowBank] = useState(false);
+  // Doesn't change during a session, so resolve it once.
+  const [platform] = useState(upiPlatform);
+  const isMobile = platform !== 'desktop';
 
-  const link = upiLink({
+  const link = (app) =>
+    upiAppLink({
+      platform,
+      app,
+      upiId: SITE.upi.id,
+      payeeName: SITE.upi.payeeName,
+      amount,
+      note: 'Donation',
+    });
+
+  // The QR always carries the plain upi:// intent — that is what scanners read,
+  // regardless of which platform rendered the page.
+  const qrPayload = upiAppLink({
+    platform: 'desktop',
+    app: null,
     upiId: SITE.upi.id,
     payeeName: SITE.upi.payeeName,
     amount,
@@ -42,7 +59,7 @@ export default function UpiPanel({ amount }) {
 
   useEffect(() => {
     let alive = true;
-    QRCode.toDataURL(link, {
+    QRCode.toDataURL(qrPayload, {
       margin: 1,
       width: 480,
       errorCorrectionLevel: 'M',
@@ -53,7 +70,7 @@ export default function UpiPanel({ amount }) {
     return () => {
       alive = false;
     };
-  }, [link]);
+  }, [qrPayload]);
 
   return (
     <div className="upi">
@@ -72,18 +89,45 @@ export default function UpiPanel({ amount }) {
 
       <div className="upi-body">
         <p className="upi-lead">
-          Scan with any UPI app — GPay, PhonePe, Paytm, BHIM. The amount{' '}
-          <strong>{money(amount)}</strong> is already filled in.
+          {isMobile ? (
+            <>
+              Pay <strong>{money(amount)}</strong> — the amount is filled in for you, so there is
+              nothing to type.
+            </>
+          ) : (
+            <>
+              Scan this code with any UPI app on your phone — GPay, PhonePe, Paytm, BHIM. The amount{' '}
+              <strong>{money(amount)}</strong> is already filled in.
+            </>
+          )}
         </p>
 
         <CopyField label="UPI ID" value={SITE.upi.id} />
 
-        {/* upi:// only resolves on a phone with a UPI app installed. */}
-        <a className="btn btn-primary btn-block upi-open" href={link}>
-          <Icon name="arrow" className="ic arrow" />
-          Open a UPI app on this phone
-        </a>
-        <p className="upi-hint">On a computer? Scan the code with your phone instead.</p>
+        {/* upi:// only resolves on a phone, so a desktop visitor gets the QR
+            and the UPI ID rather than a button that would do nothing. */}
+        {isMobile ? (
+          <>
+            <a className="btn btn-primary btn-block upi-open" href={link(null)}>
+              <Icon name="arrow" className="ic arrow" />
+              Open my UPI app
+            </a>
+
+            <p className="upi-apps-label">or go straight to</p>
+            <div className="upi-apps">
+              {UPI_APPS.map((app) => (
+                <a key={app.key} className="upi-app" href={link(app)}>
+                  {app.label}
+                </a>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="upi-hint upi-hint-desktop">
+            On a computer, UPI apps can't be opened from the browser — scan the code above with your
+            phone, or send to the UPI ID from your phone's app.
+          </p>
+        )}
 
         <button
           type="button"

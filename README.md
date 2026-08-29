@@ -363,10 +363,24 @@ are a serious audit problem.
 ### How the flow works
 
 1. **Choose an amount** — presets or custom.
-2. **Pay by UPI** — [UpiPanel.jsx](src/components/UpiPanel.jsx) builds a
-   `upi://pay?pa=…&am=…` intent, renders it as a QR (scan from a desktop) and as a tappable button
-   (opens GPay/PhonePe/Paytm on a phone with the amount pre-filled and locked). Bank transfer details
-   sit behind a toggle.
+2. **Pay by UPI** — [UpiPanel.jsx](src/components/UpiPanel.jsx) renders a QR plus, on a phone,
+   tappable deep links. Bank transfer details sit behind a toggle.
+
+   **The link format depends on the platform**, because `upi://` is not universal:
+
+   | Platform | What is offered | Link form |
+   | --- | --- | --- |
+   | Desktop | QR + UPI ID only — **no button** | — |
+   | Android | "Open my UPI app" + per-app links | `intent://pay?…#Intent;scheme=upi;package=…;end` |
+   | iOS | "Open my UPI app" + per-app links | `gpay://`, `phonepe://`, `paytmmp://` |
+
+   A desktop browser has no handler for `upi://`, so a button there does nothing at all — which is
+   why it is not rendered. On Android the `intent://` form is more reliable than bare `upi://` and can
+   name a package, so "Google Pay" genuinely opens Google Pay. iOS does not support `upi://`, so each
+   app is reached through its own scheme.
+
+   The QR always encodes the plain `upi://` intent, since that is what scanners expect regardless of
+   which device drew the page.
 3. **Tell us it's yours** — name, email, PAN and the **UTR**, because money arrives in the account
    with no donor name attached.
 
