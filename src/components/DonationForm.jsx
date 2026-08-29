@@ -302,16 +302,29 @@ export default function DonationForm() {
             )}
           </div>
 
+          {/* Apps Script takes a few seconds to answer. Without a visible
+              spinner the button looks dead and people click again or give up. */}
           <button
             type="submit"
             id="submitBtn"
             className="btn btn-primary btn-block btn-lg"
             disabled={amount <= 0 || status === 'submitting'}
+            aria-busy={status === 'submitting'}
             style={amount <= 0 ? { opacity: 0.6 } : undefined}
           >
             <span id="submitLabel">{submitLabel}</span>
-            <Icon name="arrow" className="ic arrow" />
+            {status === 'submitting' ? (
+              <span className="spinner" aria-hidden="true" />
+            ) : (
+              <Icon name="arrow" className="ic arrow" />
+            )}
           </button>
+
+          <p className="submit-status" role="status" aria-live="polite">
+            {status === 'submitting' && 'Saving your details — this takes a few seconds.'}
+            {status === 'error' &&
+              'We could not save it. Check your connection and try again — your payment is unaffected.'}
+          </p>
 
           <p className="form-foot">
             <Icon name="lock" />
