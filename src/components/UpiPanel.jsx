@@ -108,9 +108,11 @@ export default function UpiPanel({ amount }) {
             and the UPI ID rather than a button that would do nothing. */}
         {isMobile ? (
           <>
+            {/* Label in a span and arrow last — matches the submit button, and
+                the .btn:hover .arrow nudge is written for a trailing icon. */}
             <a className="btn btn-primary btn-block upi-open" href={link(null)}>
+              <span>Open my UPI app</span>
               <Icon name="arrow" className="ic arrow" />
-              Open my UPI app
             </a>
 
             <p className="upi-apps-label">or go straight to</p>
