@@ -420,8 +420,24 @@ VITE_SHEET_ENDPOINT=https://script.google.com/macros/s/AKfy.../exec
 `.env` is gitignored; [.env.example](.env.example) is the committed template. **Vite only reads env
 files at startup — restart `npm run dev` after editing.**
 
-**5. Test.** Submit a donation on the site and confirm a row appears. Opening the `/exec` URL in a
-browser directly should return `{"ok":true,...}`.
+**5. Test.** Submit a donation on the site, then open the `/exec` URL in a browser. `doGet` reports
+which spreadsheet and tab it writes to, every tab in the file with its row count, and how many
+donations are logged — so a write landing somewhere unexpected is immediately visible.
+
+### If rows do not appear
+
+**Check the tab first.** Rows go to a tab named **`complete_meal`**, not `Sheet1`. A brand-new sheet
+opens on `Sheet1`, and the new tab is easy to miss along the bottom.
+
+**Re-deploying after a code change.** Editing the script does *not* change what `/exec` serves. You
+must publish a new version: **Deploy ▸ Manage deployments ▸ ✏️ ▸ Version: New version ▸ Deploy**. The
+URL stays the same. If `/exec` returns a response without `spreadsheetName`, it is still running old
+code.
+
+**Standalone vs bound script.** If you created the project at script.google.com rather than through
+**Extensions ▸ Apps Script** inside the sheet, there is no active spreadsheet and nothing can be
+written. Set `SPREADSHEET_ID` at the top of `Code.gs` to the id in your sheet's URL (between `/d/`
+and `/edit`).
 
 Columns: Timestamp · Name · Email · Amount · Meals · UTR · Method · Currency · Matched to bank? ·
 Receipt sent? — the last two are blank for you to fill during reconciliation.
